@@ -1,0 +1,61 @@
+{
+  "warehouses": [
+    {"id": "W1", "name": "华东一号仓", "areas": ["A", "B", "C", "D"]},
+    {"id": "W2", "name": "华南二号仓", "areas": ["A", "B", "C"]},
+    {"id": "W3", "name": "华北三号仓", "areas": ["A", "B"]}
+  ],
+  "nodes": {
+    "W1": {
+      "A1": {"x": 0, "y": 0, "kind": "storage"},
+      "A2": {"x": 40, "y": 0, "kind": "storage"},
+      "B1": {"x": 0, "y": 40, "kind": "storage"},
+      "B2": {"x": 40, "y": 40, "kind": "storage"},
+      "C1": {"x": 0, "y": 80, "kind": "charging"},
+      "D1": {"x": 80, "y": 80, "kind": "dock"}
+    },
+    "W2": {
+      "A1": {"x": 0, "y": 0, "kind": "storage"},
+      "A2": {"x": 40, "y": 0, "kind": "storage"},
+      "B1": {"x": 40, "y": 40, "kind": "dock"},
+      "C1": {"x": 80, "y": 40, "kind": "charging"}
+    },
+    "W3": {
+      "A1": {"x": 0, "y": 0, "kind": "storage"},
+      "A2": {"x": 40, "y": 0, "kind": "storage"},
+      "B1": {"x": 40, "y": 40, "kind": "dock"}
+    }
+  },
+  "edges": {
+    "W1": [["A1", "A2"], ["A1", "B1"], ["A2", "B2"], ["B1", "B2"], ["B1", "C1"], ["B2", "D1"], ["C1", "D1"]],
+    "W2": [["A1", "A2"], ["A2", "B1"], ["B1", "C1"]],
+    "W3": [["A1", "A2"], ["A2", "B1"]]
+  },
+  "robots": [
+    {"id": "R101", "warehouse_id": "W1", "battery": 82, "soh": 94, "status": "idle", "node": "A1", "current_task": null},
+    {"id": "R102", "warehouse_id": "W1", "battery": 64, "soh": 91, "status": "busy", "node": "B2", "current_task": "T2001"},
+    {"id": "R103", "warehouse_id": "W1", "battery": 18, "soh": 88, "status": "idle", "node": "C1", "current_task": null},
+    {"id": "R104", "warehouse_id": "W1", "battery": 12, "soh": 86, "status": "idle", "node": "B1", "current_task": null},
+    {"id": "R105", "warehouse_id": "W1", "battery": 91, "soh": 96, "status": "idle", "node": "A2", "current_task": null},
+    {"id": "R106", "warehouse_id": "W1", "battery": 77, "soh": 79, "status": "fault", "node": "C1", "current_task": null},
+    {"id": "R201", "warehouse_id": "W2", "battery": 88, "soh": 95, "status": "idle", "node": "A1", "current_task": null},
+    {"id": "R202", "warehouse_id": "W2", "battery": 45, "soh": 90, "status": "busy", "node": "B1", "current_task": "T2004"},
+    {"id": "R203", "warehouse_id": "W2", "battery": 9, "soh": 84, "status": "idle", "node": "C1", "current_task": null},
+    {"id": "R301", "warehouse_id": "W3", "battery": 70, "soh": 93, "status": "idle", "node": "A1", "current_task": null},
+    {"id": "R302", "warehouse_id": "W3", "battery": 55, "soh": 89, "status": "idle", "node": "B1", "current_task": null}
+  ],
+  "tasks": [
+    {"id": "T2001", "warehouse_id": "W1", "priority": 1, "kind": "outbound", "from_node": "B2", "to_node": "D1", "status": "running", "robot_id": "R102", "created_at": "2026-10-20T08:10:00"},
+    {"id": "T2002", "warehouse_id": "W1", "priority": 2, "kind": "outbound", "from_node": "A1", "to_node": "D1", "status": "queued", "robot_id": null, "created_at": "2026-10-20T08:12:00"},
+    {"id": "T2003", "warehouse_id": "W1", "priority": 4, "kind": "inbound", "from_node": "D1", "to_node": "A2", "status": "queued", "robot_id": null, "created_at": "2026-10-20T08:15:00"},
+    {"id": "T2004", "warehouse_id": "W2", "priority": 2, "kind": "outbound", "from_node": "A2", "to_node": "B1", "status": "running", "robot_id": "R202", "created_at": "2026-10-20T08:05:00"},
+    {"id": "T2005", "warehouse_id": "W2", "priority": 5, "kind": "replenish", "from_node": "B1", "to_node": "A1", "status": "queued", "robot_id": null, "created_at": "2026-10-20T08:20:00"},
+    {"id": "T2006", "warehouse_id": "W3", "priority": 1, "kind": "rescue", "from_node": "B1", "to_node": "A2", "status": "queued", "robot_id": null, "created_at": "2026-10-20T08:22:00"},
+    {"id": "T2007", "warehouse_id": "W1", "priority": 3, "kind": "transfer", "from_node": "A2", "to_node": "C1", "status": "blocked", "robot_id": null, "created_at": "2026-10-20T08:25:00"}
+  ],
+  "users": [
+    {"id": "U001", "name": "张三", "role": "dispatcher", "warehouses": ["W1"]},
+    {"id": "U002", "name": "李四", "role": "supervisor", "warehouses": ["W1", "W2"]},
+    {"id": "U003", "name": "王五", "role": "admin", "warehouses": ["W1", "W2", "W3"]},
+    {"id": "U004", "name": "赵六", "role": "viewer", "warehouses": ["W1"]}
+  ]
+}
