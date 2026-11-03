@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mcp-a2a-dispatch"
+version = "0.1.0"
+description = "MCP 工具层 + LangGraph 三代理编排：派单、路径、异常处置"
+requires-python = ">=3.10"
+dependencies = [
+    "fastmcp>=2.0.0",
+    "langgraph>=0.2.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+
+[project.scripts]
+dispatch-agent = "dispatch_agent.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
