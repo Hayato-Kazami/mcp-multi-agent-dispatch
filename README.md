@@ -84,7 +84,9 @@ Agent 可以"提议"任意操作，但工具自己决定执不执行。模型被
 
 **② 写操作与只读操作共用一条图，只有写操作进审批。**
 只读（查队列、算路径）直接执行，写（派单、报障）必须过 `review`。判断依据是 `Action.write`，不是"哪个 agent 调的"——同一个 agent 可能既查又写。
-审批用 `interrupt()` + checkpointer：状态落在 MemorySaver 里，进程重启后能续跑，这是"断点恢复"和"假装断点恢复"的区别。
+审批用 `interrupt()` + checkpointer：暂停时整个 state 被序列化进 checkpoint，恢复时从断点继续、**不重新执行 propose**。
+但要分清机制和配置——**demo 配的是 `MemorySaver`，它活在进程内存里，真的重启进程状态还是丢**。所以准确说法是：
+「机制上支持断点恢复；demo 的 checkpointer 是内存实现，**跨进程要换 Postgres checkpointer**」。这就是"能续跑"和"假装能续跑"的差别所在。
 
 **③ 防死循环靠三道，但当前这张图其实用不上。**
 
