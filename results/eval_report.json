@@ -7,6 +7,43 @@
   "unauthorized_blocked": "2/2",
   "clarify_correct": "1/1",
   "tool_calls": 58,
+  "tool_calls_execute": 13,
+  "read_calls": 45,
+  "n_proposals": 13,
+  "n_executed": 13,
+  "proposal_adoption": 1.0,
+  "execute_retry_amplification": 1.0,
+  "read_per_proposal": 3.46,
+  "stall_events": 0,
+  "per_agent": {
+    "CollabAgent": {
+      "proposed": 5,
+      "positive": 4,
+      "positive_ok": 4,
+      "negative": 1,
+      "negative_rejected": 1,
+      "positive_ok_rate": 1.0,
+      "negative_reject_rate": 1.0
+    },
+    "AssignAgent": {
+      "proposed": 7,
+      "positive": 2,
+      "positive_ok": 2,
+      "negative": 5,
+      "negative_rejected": 5,
+      "positive_ok_rate": 1.0,
+      "negative_reject_rate": 1.0
+    },
+    "PathAgent": {
+      "proposed": 1,
+      "positive": 1,
+      "positive_ok": 1,
+      "negative": 0,
+      "negative_rejected": 0,
+      "positive_ok_rate": 1.0,
+      "negative_reject_rate": null
+    }
+  },
   "cases": [
     {
       "id": "c01",
@@ -22,7 +59,27 @@
           "OK"
         ]
       ],
-      "trace_steps": 1
+      "trace_steps": 1,
+      "tool_calls": 1,
+      "proposals": [
+        {
+          "agent": "CollabAgent",
+          "tool": "query_tasks",
+          "write": false,
+          "fp": "query_tasks:{\"user_id\": \"U001\", \"warehouse_id\": \"W1\"}"
+        }
+      ],
+      "executed": [
+        {
+          "fp": "query_tasks:{\"user_id\": \"U001\", \"warehouse_id\": \"W1\"}",
+          "tool": "query_tasks",
+          "ok": true,
+          "code": "OK",
+          "retried": false,
+          "calls": 1
+        }
+      ],
+      "stalled": false
     },
     {
       "id": "c02",
@@ -38,7 +95,27 @@
           "OK"
         ]
       ],
-      "trace_steps": 5
+      "trace_steps": 5,
+      "tool_calls": 5,
+      "proposals": [
+        {
+          "agent": "AssignAgent",
+          "tool": "assign_task",
+          "write": true,
+          "fp": "assign_task:{\"idempotency_key\": \"U001-T2002-R101\", \"robot_id\": \"R101\", \"task_id\": \"T2002\", \"user_id\": \"U001\"}"
+        }
+      ],
+      "executed": [
+        {
+          "fp": "assign_task:{\"idempotency_key\": \"U001-T2002-R101\", \"robot_id\": \"R101\", \"task_id\": \"T2002\", \"user_id\": \"U001\"}",
+          "tool": "assign_task",
+          "ok": true,
+          "code": "OK",
+          "retried": false,
+          "calls": 1
+        }
+      ],
+      "stalled": false
     },
     {
       "id": "c03",
@@ -54,7 +131,27 @@
           "BATTERY_TOO_LOW"
         ]
       ],
-      "trace_steps": 6
+      "trace_steps": 6,
+      "tool_calls": 6,
+      "proposals": [
+        {
+          "agent": "AssignAgent",
+          "tool": "assign_task",
+          "write": true,
+          "fp": "assign_task:{\"idempotency_key\": \"U001-T2003-R103\", \"robot_id\": \"R103\", \"task_id\": \"T2003\", \"user_id\": \"U001\"}"
+        }
+      ],
+      "executed": [
+        {
+          "fp": "assign_task:{\"idempotency_key\": \"U001-T2003-R103\", \"robot_id\": \"R103\", \"task_id\": \"T2003\", \"user_id\": \"U001\"}",
+          "tool": "assign_task",
+          "ok": false,
+          "code": "BATTERY_TOO_LOW",
+          "retried": false,
+          "calls": 1
+        }
+      ],
+      "stalled": false
     },
     {
       "id": "c04",
@@ -70,7 +167,27 @@
           "ROBOT_FAULT"
         ]
       ],
-      "trace_steps": 6
+      "trace_steps": 6,
+      "tool_calls": 6,
+      "proposals": [
+        {
+          "agent": "AssignAgent",
+          "tool": "assign_task",
+          "write": true,
+          "fp": "assign_task:{\"idempotency_key\": \"U001-T2003-R106\", \"robot_id\": \"R106\", \"task_id\": \"T2003\", \"user_id\": \"U001\"}"
+        }
+      ],
+      "executed": [
+        {
+          "fp": "assign_task:{\"idempotency_key\": \"U001-T2003-R106\", \"robot_id\": \"R106\", \"task_id\": \"T2003\", \"user_id\": \"U001\"}",
+          "tool": "assign_task",
+          "ok": false,
+          "code": "ROBOT_FAULT",
+          "retried": false,
+          "calls": 1
+        }
+      ],
+      "stalled": false
     },
     {
       "id": "c05",
@@ -86,7 +203,27 @@
           "TASK_NOT_ASSIGNABLE"
         ]
       ],
-      "trace_steps": 5
+      "trace_steps": 5,
+      "tool_calls": 5,
+      "proposals": [
+        {
+          "agent": "AssignAgent",
+          "tool": "assign_task",
+          "write": true,
+          "fp": "assign_task:{\"idempotency_key\": \"U001-T2001-R105\", \"robot_id\": \"R105\", \"task_id\": \"T2001\", \"user_id\": \"U001\"}"
+        }
+      ],
+      "executed": [
+        {
+          "fp": "assign_task:{\"idempotency_key\": \"U001-T2001-R105\", \"robot_id\": \"R105\", \"task_id\": \"T2001\", \"user_id\": \"U001\"}",
+          "tool": "assign_task",
+          "ok": false,
+          "code": "TASK_NOT_ASSIGNABLE",
+          "retried": false,
+          "calls": 1
+        }
+      ],
+      "stalled": false
     },
     {
       "id": "c06",
@@ -102,7 +239,27 @@
           "ROBOT_BUSY"
         ]
       ],
-      "trace_steps": 6
+      "trace_steps": 6,
+      "tool_calls": 6,
+      "proposals": [
+        {
+          "agent": "AssignAgent",
+          "tool": "assign_task",
+          "write": true,
+          "fp": "assign_task:{\"idempotency_key\": \"U001-T2003-R102\", \"robot_id\": \"R102\", \"task_id\": \"T2003\", \"user_id\": \"U001\"}"
+        }
+      ],
+      "executed": [
+        {
+          "fp": "assign_task:{\"idempotency_key\": \"U001-T2003-R102\", \"robot_id\": \"R102\", \"task_id\": \"T2003\", \"user_id\": \"U001\"}",
+          "tool": "assign_task",
+          "ok": false,
+          "code": "ROBOT_BUSY",
+          "retried": false,
+          "calls": 1
+        }
+      ],
+      "stalled": false
     },
     {
       "id": "c07",
@@ -118,7 +275,27 @@
           "UNAUTHORIZED"
         ]
       ],
-      "trace_steps": 5
+      "trace_steps": 5,
+      "tool_calls": 5,
+      "proposals": [
+        {
+          "agent": "AssignAgent",
+          "tool": "assign_task",
+          "write": true,
+          "fp": "assign_task:{\"idempotency_key\": \"U004-T2003-R105\", \"robot_id\": \"R105\", \"task_id\": \"T2003\", \"user_id\": \"U004\"}"
+        }
+      ],
+      "executed": [
+        {
+          "fp": "assign_task:{\"idempotency_key\": \"U004-T2003-R105\", \"robot_id\": \"R105\", \"task_id\": \"T2003\", \"user_id\": \"U004\"}",
+          "tool": "assign_task",
+          "ok": false,
+          "code": "UNAUTHORIZED",
+          "retried": false,
+          "calls": 1
+        }
+      ],
+      "stalled": false
     },
     {
       "id": "c08",
@@ -134,7 +311,27 @@
           "OUT_OF_SCOPE"
         ]
       ],
-      "trace_steps": 1
+      "trace_steps": 1,
+      "tool_calls": 1,
+      "proposals": [
+        {
+          "agent": "CollabAgent",
+          "tool": "query_tasks",
+          "write": false,
+          "fp": "query_tasks:{\"user_id\": \"U001\", \"warehouse_id\": \"W2\"}"
+        }
+      ],
+      "executed": [
+        {
+          "fp": "query_tasks:{\"user_id\": \"U001\", \"warehouse_id\": \"W2\"}",
+          "tool": "query_tasks",
+          "ok": false,
+          "code": "OUT_OF_SCOPE",
+          "retried": false,
+          "calls": 1
+        }
+      ],
+      "stalled": false
     },
     {
       "id": "c09",
@@ -150,7 +347,27 @@
           "OK"
         ]
       ],
-      "trace_steps": 1
+      "trace_steps": 1,
+      "tool_calls": 1,
+      "proposals": [
+        {
+          "agent": "PathAgent",
+          "tool": "plan_path",
+          "write": false,
+          "fp": "plan_path:{\"from_node\": \"A1\", \"to_node\": \"D1\", \"user_id\": \"U001\", \"warehouse_id\": \"W1\"}"
+        }
+      ],
+      "executed": [
+        {
+          "fp": "plan_path:{\"from_node\": \"A1\", \"to_node\": \"D1\", \"user_id\": \"U001\", \"warehouse_id\": \"W1\"}",
+          "tool": "plan_path",
+          "ok": true,
+          "code": "OK",
+          "retried": false,
+          "calls": 1
+        }
+      ],
+      "stalled": false
     },
     {
       "id": "c10",
@@ -166,7 +383,27 @@
           "OK"
         ]
       ],
-      "trace_steps": 1
+      "trace_steps": 1,
+      "tool_calls": 1,
+      "proposals": [
+        {
+          "agent": "CollabAgent",
+          "tool": "report_fault",
+          "write": true,
+          "fp": "report_fault:{\"idempotency_key\": \"U002-fault-R102-1\", \"level\": 1, \"robot_id\": \"R102\", \"user_id\": \"U002\"}"
+        }
+      ],
+      "executed": [
+        {
+          "fp": "report_fault:{\"idempotency_key\": \"U002-fault-R102-1\", \"level\": 1, \"robot_id\": \"R102\", \"user_id\": \"U002\"}",
+          "tool": "report_fault",
+          "ok": true,
+          "code": "OK",
+          "retried": false,
+          "calls": 1
+        }
+      ],
+      "stalled": false
     },
     {
       "id": "c11",
@@ -177,7 +414,11 @@
       "answer": "信息不足，请补充：任务号（形如 T2002）",
       "steps": 2,
       "codes": [],
-      "trace_steps": 1
+      "trace_steps": 1,
+      "tool_calls": 0,
+      "proposals": [],
+      "executed": [],
+      "stalled": false
     },
     {
       "id": "c12",
@@ -197,7 +438,41 @@
           "OK"
         ]
       ],
-      "trace_steps": 10
+      "trace_steps": 10,
+      "tool_calls": 11,
+      "proposals": [
+        {
+          "agent": "CollabAgent",
+          "tool": "assign_task",
+          "write": true,
+          "fp": "assign_task:{\"idempotency_key\": \"U001-T2002-R101\", \"robot_id\": \"R101\", \"task_id\": \"T2002\", \"user_id\": \"U001\"}"
+        },
+        {
+          "agent": "CollabAgent",
+          "tool": "assign_task",
+          "write": true,
+          "fp": "assign_task:{\"idempotency_key\": \"U001-T2003-R105\", \"robot_id\": \"R105\", \"task_id\": \"T2003\", \"user_id\": \"U001\"}"
+        }
+      ],
+      "executed": [
+        {
+          "fp": "assign_task:{\"idempotency_key\": \"U001-T2002-R101\", \"robot_id\": \"R101\", \"task_id\": \"T2002\", \"user_id\": \"U001\"}",
+          "tool": "assign_task",
+          "ok": true,
+          "code": "OK",
+          "retried": false,
+          "calls": 1
+        },
+        {
+          "fp": "assign_task:{\"idempotency_key\": \"U001-T2003-R105\", \"robot_id\": \"R105\", \"task_id\": \"T2003\", \"user_id\": \"U001\"}",
+          "tool": "assign_task",
+          "ok": true,
+          "code": "OK",
+          "retried": false,
+          "calls": 1
+        }
+      ],
+      "stalled": false
     },
     {
       "id": "c13",
@@ -218,7 +493,27 @@
           "assign_task",
           "OK"
         ]
-      ]
+      ],
+      "tool_calls": 10,
+      "proposals": [
+        {
+          "agent": "AssignAgent",
+          "tool": "assign_task",
+          "write": true,
+          "fp": "assign_task:{\"idempotency_key\": \"U001-T2002-R101\", \"robot_id\": \"R101\", \"task_id\": \"T2002\", \"user_id\": \"U001\"}"
+        }
+      ],
+      "executed": [
+        {
+          "fp": "assign_task:{\"idempotency_key\": \"U001-T2002-R101\", \"robot_id\": \"R101\", \"task_id\": \"T2002\", \"user_id\": \"U001\"}",
+          "tool": "assign_task",
+          "ok": true,
+          "code": "IDEMPOTENT_REPLAY",
+          "retried": false,
+          "calls": 1
+        }
+      ],
+      "stalled": false
     }
   ]
 }

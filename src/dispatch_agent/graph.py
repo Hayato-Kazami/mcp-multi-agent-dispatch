@@ -29,6 +29,9 @@ from .agents.base import ToolGateway
 from .planner import parse
 
 MAX_STEPS = 8
+# 停滞断路器的第二个判据：连续这么多次工具调用失败就停手，转人工。
+# 只有指纹去重挡不住"每轮参数都不同但一直在错"的情况（书里叫同一错误重复 k 轮）。
+STALL_LIMIT = 2
 
 
 class State(TypedDict, total=False):
@@ -47,6 +50,10 @@ class State(TypedDict, total=False):
     seen: list
     done: bool
     answer: str
+    proposals: list
+    executed: list
+    consecutive_failures: int
+    stalled: bool
 
 
 def _fingerprint(action: dict) -> str:
@@ -78,10 +85,13 @@ def build_graph(gateway: ToolGateway, user_id: str):
         trace = state.get("trace", [])
         if state["intent"] == "assign":
             actions = await assign_agent.propose(plan, trace)
+            agent_name = "AssignAgent"
         elif state["intent"] == "path":
             actions = await path_agent.propose(plan, trace)
+            agent_name = "PathAgent"
         else:
             actions = await collab_agent.propose(plan, trace)
+            agent_name = "CollabAgent"
 
         seen = state.get("seen", [])
         fresh: list[dict] = []
@@ -90,9 +100,24 @@ def build_graph(gateway: ToolGateway, user_id: str):
             if _fingerprint(described) in seen:
                 continue
             fresh.append(described)
+
+        # 记下"提了什么"，供评测统计提案采纳率与按代理归因。
+        # 注意这是 propose 的产出，不是执行结果 —— 两者分开才能看出代理有没有在空转。
+        proposals = list(state.get("proposals", []))
+        for described in fresh:
+            proposals.append(
+                {
+                    "agent": agent_name,
+                    "tool": described["tool"],
+                    "write": bool(described.get("write")),
+                    "fp": _fingerprint(described),
+                }
+            )
+
         return {
             "pending": fresh,
             "trace": trace,
+            "proposals": proposals,
             "steps": state.get("steps", 0) + 1,
         }
 
@@ -126,9 +151,13 @@ def build_graph(gateway: ToolGateway, user_id: str):
     async def execute(state: State) -> dict:
         results = list(state.get("results", []))
         seen = list(state.get("seen", []))
+        executed = list(state.get("executed", []))
         steps = state.get("steps", 0)
+        consecutive = state.get("consecutive_failures", 0)
+        stalled = False
+        pending = state.get("pending") or []
 
-        for action in state.get("pending") or []:
+        for index, action in enumerate(pending):
             if steps >= MAX_STEPS:
                 results.append({"action": action, "result": {"ok": False, "code": "STEP_LIMIT"}})
                 break
@@ -139,17 +168,54 @@ def build_graph(gateway: ToolGateway, user_id: str):
             seen.append(fingerprint)
 
             result = await gateway.call(action["tool"], **action["args"])
+            calls_here = 1
             steps += 1
             if not result.get("ok"):
                 for fallback in action.get("fallbacks") or []:
                     alternative = await gateway.call(action["tool"], **fallback)
+                    calls_here += 1
                     steps += 1
                     if alternative.get("ok"):
                         result = alternative | {"retried": True}
                         break
             results.append({"action": action, "result": result})
+            executed.append(
+                {
+                    "fp": fingerprint,
+                    "tool": action["tool"],
+                    "ok": bool(result.get("ok")),
+                    "code": result.get("code"),
+                    "retried": bool(result.get("retried")),
+                    # 一个提案可能花掉多次工具调用（主方案 + 备选），
+                    # 单独记下来才能算"调用放大倍数"，而不是拿全局计数硬除。
+                    "calls": calls_here,
+                }
+            )
 
-        return {"results": results, "pending": [], "seen": seen, "steps": steps, "done": True}
+            # 停滞断路器：连续失败到阈值就停手。
+            # 继续换参数重试只会把步数烧完，人在这时候介入比 Agent 再猜一次便宜。
+            if result.get("ok"):
+                consecutive = 0
+            else:
+                consecutive += 1
+                if consecutive >= STALL_LIMIT:
+                    stalled = True
+                    for rest in pending[index + 1 :]:
+                        results.append(
+                            {"action": rest, "result": {"ok": False, "code": "STALLED_SKIPPED"}}
+                        )
+                    break
+
+        return {
+            "results": results,
+            "pending": [],
+            "seen": seen,
+            "executed": executed,
+            "steps": steps,
+            "consecutive_failures": consecutive,
+            "stalled": stalled,
+            "done": True,
+        }
 
     async def clarify(state: State) -> dict:
         missing = state.get("missing") or []
@@ -205,6 +271,11 @@ def build_graph(gateway: ToolGateway, user_id: str):
                     lines.append(f"{action['tool']} 执行成功")
             else:
                 lines.append(f"{action['tool']} 被拒绝：{result.get('code')} {result.get('message', '')}".strip())
+        if state.get("stalled"):
+            lines.append(
+                f"连续 {STALL_LIMIT} 次工具调用失败，已停止重试并转人工处理"
+                "（避免把步数烧在同一个错误上）"
+            )
         return {"answer": "；".join(lines), "done": True}
 
     builder = StateGraph(State)
@@ -243,15 +314,25 @@ def initial_state(request: str, user_id: str, warehouse_id: str = "W1", auto_app
         "seen": [],
         "done": False,
         "answer": "",
+        "proposals": [],
+        "executed": [],
+        "consecutive_failures": 0,
+        "stalled": False,
     }
 
 
 def summarize(state: dict) -> dict[str, Any]:
     """只保留对外可见的字段，避免把内部 trace 直接抛给调用方。"""
+    proposals = state.get("proposals", [])
+    executed = state.get("executed", [])
     return {
         "answer": state.get("answer", ""),
         "intent": state.get("intent"),
         "steps": state.get("steps", 0),
+        "n_proposals": len(proposals),
+        "n_executed": len(executed),
+        "stalled": bool(state.get("stalled")),
+        "agents": sorted({row["agent"] for row in proposals}),
         "results": [
             {
                 "tool": row["action"]["tool"],

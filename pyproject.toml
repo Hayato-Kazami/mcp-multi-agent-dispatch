@@ -8,7 +8,10 @@ version = "0.1.0"
 description = "MCP 工具层 + LangGraph 三代理编排：派单、路径、异常处置"
 license = "MIT"
 license-files = ["LICENSE"]
-requires-python = ">=3.10"
+# 3.11 是硬要求，不是保守：interrupt() 在异步节点里依赖 contextvars 传入工作线程，
+# 而 run_coroutine_threadsafe(context=...) 是 3.11 才有的参数。3.10 上人工审批会直接报
+# "Called get_config outside of a runnable context"。见 docs/design.md §3。
+requires-python = ">=3.11"
 dependencies = [
     "fastmcp>=2.0.0",
     "langgraph>=0.2.0",

@@ -169,6 +169,7 @@ def _check(case: dict, result: dict) -> tuple[bool, list[str]]:
 
 async def _run_case(gateway: McpGateway, case: dict) -> dict:
     tools.STORE = Store()  # 每条用例重置内存库
+    before = gateway.calls
     graph = build_graph(gateway, case["user"])
     config = {"configurable": {"thread_id": case["id"]}}
     state = initial_state(case["request"], case["user"], case["warehouse"], auto_approve=True)
@@ -184,12 +185,17 @@ async def _run_case(gateway: McpGateway, case: dict) -> dict:
         "steps": result.get("steps"),
         "codes": _codes(result),
         "trace_steps": len(result.get("trace", [])),
+        "tool_calls": gateway.calls - before,
+        "proposals": result.get("proposals", []),
+        "executed": result.get("executed", []),
+        "stalled": bool(result.get("stalled")),
     }
 
 
 async def _run_idempotent(gateway: McpGateway) -> dict:
     """同一条派单指令连跑两次，第二次应命中幂等重放。"""
     tools.STORE = Store()
+    before = gateway.calls
     graph = build_graph(gateway, "U001")
     request = "把任务 T2002 派给机器人 R101"
     first = await graph.ainvoke(
@@ -212,6 +218,10 @@ async def _run_idempotent(gateway: McpGateway) -> dict:
         "steps": second.get("steps"),
         "codes": codes,
         "first_codes": _codes(first),
+        "tool_calls": gateway.calls - before,
+        "proposals": second.get("proposals", []),
+        "executed": second.get("executed", []),
+        "stalled": bool(second.get("stalled")),
     }
 
 
@@ -230,6 +240,58 @@ async def main_async(args: argparse.Namespace) -> int:
     unauthorized = [row for row in rows if row["id"] in {"c07", "c08"}]
     clarify = [row for row in rows if row["id"] == "c11"]
 
+    # ---- Agent 级指标：提案有没有被执行、被执行的有没有成功 ----
+    # 这两个指标在"单调度器 + 三个策略模块"的架构里才有定义；
+    # 书里那套 token 成本 / 通信效率需要 Agent 间消息和 LLM 调用，这里都没有。
+    #
+    # 关键一步：正例和负例必须分开。13 条里有 4 条是"必须被工具拒绝"的负例
+    # （低电量、忙碌、越权），混在一起算成功率会把 AssignAgent 拉到 0.17，
+    # 看上去像代理不工作，其实是测试故意让它撞墙。
+    case_kind: dict[str, str] = {}
+    for case in CASES:
+        codes = case["expect"].get("codes") or []
+        case_kind[case["id"]] = (
+            "negative" if codes and all(code != "OK" for _, code in codes) else "positive"
+        )
+
+    proposals = [p for row in rows for p in row.get("proposals", [])]
+    executed = [e for row in rows for e in row.get("executed", [])]
+    exec_by_fp = {row["fp"]: row for row in executed}
+
+    per_agent: dict[str, dict] = {}
+    for row in rows:
+        kind = case_kind.get(row["id"], "positive")
+        for item in row.get("proposals", []):
+            bucket = per_agent.setdefault(
+                item["agent"],
+                {"proposed": 0, "positive": 0, "positive_ok": 0,
+                 "negative": 0, "negative_rejected": 0},
+            )
+            bucket["proposed"] += 1
+            hit = exec_by_fp.get(item["fp"])
+            if kind == "positive":
+                bucket["positive"] += 1
+                if hit and hit["ok"]:
+                    bucket["positive_ok"] += 1
+            else:
+                bucket["negative"] += 1
+                if hit and not hit["ok"]:
+                    bucket["negative_rejected"] += 1
+
+    for bucket in per_agent.values():
+        bucket["positive_ok_rate"] = round(
+            bucket["positive_ok"] / max(bucket["positive"], 1), 3
+        )
+        bucket["negative_reject_rate"] = (
+            round(bucket["negative_rejected"] / bucket["negative"], 3)
+            if bucket["negative"]
+            else None
+        )
+
+    total_calls = sum(row.get("tool_calls", 0) for row in rows)
+    execute_calls = sum(row.get("calls", 1) for row in executed)
+    read_calls = max(total_calls - execute_calls, 0)
+
     report = {
         "transport": "mcp",
         "n_cases": len(rows),
@@ -238,7 +300,18 @@ async def main_async(args: argparse.Namespace) -> int:
         "avg_steps": round(sum(steps) / len(steps), 2),
         "unauthorized_blocked": f"{sum(1 for r in unauthorized if r['passed'])}/{len(unauthorized)}",
         "clarify_correct": f"{sum(1 for r in clarify if r['passed'])}/{len(clarify)}",
-        "tool_calls": gateway.calls,
+        "tool_calls": total_calls,
+        "tool_calls_execute": execute_calls,
+        "read_calls": read_calls,
+        "n_proposals": len(proposals),
+        "n_executed": len(executed),
+        "proposal_adoption": round(len(executed) / max(len(proposals), 1), 4),
+        # 执行阶段的重试倍数：>1 说明主方案失败、动了 fallback
+        "execute_retry_amplification": round(execute_calls / max(len(proposals), 1), 2),
+        # 决策成本：一个写提案平均要付多少次只读调用（查队列、查机器人、算距离）
+        "read_per_proposal": round(read_calls / max(len(proposals), 1), 2),
+        "stall_events": sum(1 for row in rows if row.get("stalled")),
+        "per_agent": per_agent,
         "cases": rows,
     }
 
@@ -248,7 +321,18 @@ async def main_async(args: argparse.Namespace) -> int:
 
     print(f"\n用例数 {report['n_cases']}  通过 {passed}  通过率 {report['pass_rate']:.3f}  "
           f"平均步数 {report['avg_steps']}  工具调用 {report['tool_calls']} 次")
-    print(f"越权拦截 {report['unauthorized_blocked']}   澄清正确 {report['clarify_correct']}\n")
+    print(f"越权拦截 {report['unauthorized_blocked']}   澄清正确 {report['clarify_correct']}")
+    print(f"提案 {report['n_proposals']} / 执行 {report['n_executed']}  "
+          f"采纳率 {report['proposal_adoption']:.2f}  "
+          f"执行重试 {report['execute_retry_amplification']:.2f}x  "
+          f"决策读放大 {report['read_per_proposal']:.2f}x  "
+          f"停滞 {report['stall_events']}")
+    for agent, stat in sorted(report["per_agent"].items()):
+        neg = stat["negative"]
+        neg_text = f"{stat['negative_reject_rate']:.2f}" if neg else "—"
+        print(f"  {agent:<14} 提案 {stat['proposed']:>2}（正 {stat['positive']} / 负 {neg}）"
+              f"  正例成功 {stat['positive_ok_rate']:.2f}  负例正确拒绝 {neg_text}")
+    print()
     print(f"{'id':<5}{'P/F':<6}{'steps':<7}request")
     print("-" * 70)
     for row in rows:
