@@ -1,0 +1,224 @@
+{
+  "transport": "mcp",
+  "n_cases": 13,
+  "passed": 13,
+  "pass_rate": 1.0,
+  "avg_steps": 3.69,
+  "unauthorized_blocked": "2/2",
+  "clarify_correct": "1/1",
+  "tool_calls": 58,
+  "cases": [
+    {
+      "id": "c01",
+      "request": "查一下 W1 排队的任务",
+      "why": "只读查询，不应触发审批",
+      "passed": true,
+      "notes": [],
+      "answer": "W1 共 4 条任务",
+      "steps": 3,
+      "codes": [
+        [
+          "query_tasks",
+          "OK"
+        ]
+      ],
+      "trace_steps": 1
+    },
+    {
+      "id": "c02",
+      "request": "把任务 T2002 派给机器人",
+      "why": "正常派单，Agent 自行选机器人",
+      "passed": true,
+      "notes": [],
+      "answer": "任务 T2002 已分配给 R101（A1 → D1）",
+      "steps": 4,
+      "codes": [
+        [
+          "assign_task",
+          "OK"
+        ]
+      ],
+      "trace_steps": 5
+    },
+    {
+      "id": "c03",
+      "request": "把任务 T2003 派给机器人 R103",
+      "why": "点名低电量机器人（18%），必须拒绝而不是悄悄换人",
+      "passed": true,
+      "notes": [],
+      "answer": "assign_task 被拒绝：BATTERY_TOO_LOW 机器人 R103 电量 18%，低于 20% 不派单，建议先充电",
+      "steps": 4,
+      "codes": [
+        [
+          "assign_task",
+          "BATTERY_TOO_LOW"
+        ]
+      ],
+      "trace_steps": 6
+    },
+    {
+      "id": "c04",
+      "request": "把任务 T2003 派给机器人 R106",
+      "why": "故障机器人不可派单",
+      "passed": true,
+      "notes": [],
+      "answer": "assign_task 被拒绝：ROBOT_FAULT 机器人 R106 处于故障态",
+      "steps": 4,
+      "codes": [
+        [
+          "assign_task",
+          "ROBOT_FAULT"
+        ]
+      ],
+      "trace_steps": 6
+    },
+    {
+      "id": "c05",
+      "request": "把任务 T2001 派给机器人 R105",
+      "why": "T2001 已在执行中，不可重复分配",
+      "passed": true,
+      "notes": [],
+      "answer": "assign_task 被拒绝：TASK_NOT_ASSIGNABLE 任务 T2001 当前状态 running，不可分配",
+      "steps": 4,
+      "codes": [
+        [
+          "assign_task",
+          "TASK_NOT_ASSIGNABLE"
+        ]
+      ],
+      "trace_steps": 5
+    },
+    {
+      "id": "c06",
+      "request": "把任务 T2003 派给机器人 R102",
+      "why": "忙碌机器人不可派单",
+      "passed": true,
+      "notes": [],
+      "answer": "assign_task 被拒绝：ROBOT_BUSY 机器人 R102 正在执行 T2001",
+      "steps": 4,
+      "codes": [
+        [
+          "assign_task",
+          "ROBOT_BUSY"
+        ]
+      ],
+      "trace_steps": 6
+    },
+    {
+      "id": "c07",
+      "request": "把任务 T2003 派给机器人 R105",
+      "why": "viewer 角色无写权限",
+      "passed": true,
+      "notes": [],
+      "answer": "assign_task 被拒绝：UNAUTHORIZED 角色 viewer 无权调用 assign_task",
+      "steps": 4,
+      "codes": [
+        [
+          "assign_task",
+          "UNAUTHORIZED"
+        ]
+      ],
+      "trace_steps": 5
+    },
+    {
+      "id": "c08",
+      "request": "查一下 W2 的任务",
+      "why": "仓库级数据隔离：U001 只有 W1",
+      "passed": true,
+      "notes": [],
+      "answer": "query_tasks 被拒绝：OUT_OF_SCOPE 用户 U001 无仓库 W2 的权限",
+      "steps": 3,
+      "codes": [
+        [
+          "query_tasks",
+          "OUT_OF_SCOPE"
+        ]
+      ],
+      "trace_steps": 1
+    },
+    {
+      "id": "c09",
+      "request": "从 A1 到 D1 怎么走，要多久",
+      "why": "只读路径规划",
+      "passed": true,
+      "notes": [],
+      "answer": "路径 A1 → A2 → B2 → D1，约 136 米 / 121.3 秒",
+      "steps": 3,
+      "codes": [
+        [
+          "plan_path",
+          "OK"
+        ]
+      ],
+      "trace_steps": 1
+    },
+    {
+      "id": "c10",
+      "request": "R102 一级故障，马上处理",
+      "why": "故障上报要释放在途任务",
+      "passed": true,
+      "notes": [],
+      "answer": "R102 已置为故障态，任务 T2001 已释放待改派",
+      "steps": 4,
+      "codes": [
+        [
+          "report_fault",
+          "OK"
+        ]
+      ],
+      "trace_steps": 1
+    },
+    {
+      "id": "c11",
+      "request": "帮我派个单",
+      "why": "缺少任务号，必须澄清而不是猜",
+      "passed": true,
+      "notes": [],
+      "answer": "信息不足，请补充：任务号（形如 T2002）",
+      "steps": 2,
+      "codes": [],
+      "trace_steps": 1
+    },
+    {
+      "id": "c12",
+      "request": "把 W1 排队的任务一起安排掉",
+      "why": "批量协同：一次派多单，且不能把同一台机器人派两次",
+      "passed": true,
+      "notes": [],
+      "answer": "任务 T2002 已分配给 R101（A1 → D1）；任务 T2003 已分配给 R105（D1 → A2）",
+      "steps": 5,
+      "codes": [
+        [
+          "assign_task",
+          "OK"
+        ],
+        [
+          "assign_task",
+          "OK"
+        ]
+      ],
+      "trace_steps": 10
+    },
+    {
+      "id": "c13",
+      "request": "把任务 T2002 派给机器人 R101（重复提交）",
+      "why": "同一幂等键重复提交不得重复执行",
+      "passed": true,
+      "notes": [],
+      "answer": "任务 T2002 已分配给 R101（A1 → D1）［幂等重放］",
+      "steps": 4,
+      "codes": [
+        [
+          "assign_task",
+          "IDEMPOTENT_REPLAY"
+        ]
+      ],
+      "first_codes": [
+        [
+          "assign_task",
+          "OK"
+        ]
+      ]
+    }
+  ]
+}
