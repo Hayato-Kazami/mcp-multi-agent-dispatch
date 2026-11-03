@@ -1,4 +1,4 @@
-# mcp-a2a-dispatch
+# mcp-multi-agent-dispatch
 
 **MCP 工具层 + LangGraph 三代理编排**：调度员说一句话，系统查队列、选机器人、算路径、派单、上报故障，写操作走人工审批，重复提交走幂等。
 
