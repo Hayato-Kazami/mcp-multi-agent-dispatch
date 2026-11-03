@@ -122,3 +122,7 @@ data/mock_business.json   3 仓库 / 11 机器人 / 7 任务 / 4 角色
 scripts/eval_graph.py     13 条端到端评测
 results/eval_report.json  实测报告
 ```
+
+## License
+
+MIT —— 见 [LICENSE](LICENSE)。`data/mock_business.json` 为虚构业务数据。
